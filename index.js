@@ -126,6 +126,24 @@ app.delete("/api/persons/:id", (request, response) => {
   }
 });
 
+app.put("/api/persons/:id", (request, response) => {
+  const id = Number(request.params.id);
+  const updatedPerson = request.body;
+
+  const personIndex = persons.findIndex((person) => person.id === id);
+
+  if (personIndex !== -1) {
+    persons[personIndex] = {
+      ...persons[personIndex],
+      name: updatedPerson.name,
+      number: updatedPerson.number,
+    };
+    response.json(persons[personIndex]);
+  } else {
+    response.status(404).end();
+  }
+});
+
 app.get("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
   const person = persons.find((person) => person.id === id);
