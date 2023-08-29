@@ -5,15 +5,19 @@ const cors = require("cors");
 
 app.use(express.json());
 app.use(morgan("tiny"));
-app.use(cors({
-  origin: "*",
-}));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
+app.use(express.static("dist"));
 
 morgan.token("object", function (req, res) {
   return JSON.stringify(req.body);
-})
+});
 
-const format = ":method :url :status :res[content-length] - :response-time ms :object";
+const format =
+  ":method :url :status :res[content-length] - :response-time ms :object";
 
 app.use(morgan(format));
 
@@ -40,7 +44,6 @@ let persons = [
   },
 ];
 
-
 app.get("/api/persons", (request, response) => {
   response.json(persons);
 });
@@ -65,7 +68,7 @@ const setId = () => {
   let id = generateId();
 
   const existingId = persons.some((person) => person.id === id);
-  
+
   while (existingId) {
     id = generateId();
 
@@ -77,8 +80,8 @@ const setId = () => {
 
 app.post("/api/persons/:name/:number", (request, response) => {
   const reqBody = request.body;
-  console.log("🚀 ~ file: index.js:76 ~ app.post ~ reqBody:", reqBody)
-  
+  console.log("🚀 ~ file: index.js:76 ~ app.post ~ reqBody:", reqBody);
+
   const newPerson = request.params.name;
 
   const newNumber = request.params.number;
@@ -129,6 +132,10 @@ app.delete("/api/persons/:id", (request, response) => {
 app.put("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
   const updatedPerson = request.body;
+  console.log(
+    "🚀 ~ file: index.js:132 ~ app.put ~ updatedPerson:",
+    updatedPerson
+  );
 
   const personIndex = persons.findIndex((person) => person.id === id);
 
