@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const morgan = require("morgan");
 const cors = require("cors");
+const mongoose = require("mongoose");
+require("dotenv").config();
 
 app.use(express.json());
 app.use(morgan("tiny"));
@@ -21,31 +23,37 @@ const format =
 
 app.use(morgan(format));
 
-let persons = [
-  {
-    id: 1,
-    name: "Arto Hellas",
-    number: "040-123456",
+// Mongoose definitions
+const password = process.env.PASSWORD;
+const dbURL = `mongodb+srv://awwad:${password}@cluster0.4w4rnnc.mongodb.net/?retryWrites=true&w=majority`;
+
+mongoose
+  .connect(dbURL)
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((error) => {
+    console.log("Error connecting to MongoDB:", error.message);
+  });
+
+const contactSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
   },
-  {
-    id: 2,
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
+  number: {
+    type: Number,
+    required: true,
   },
-  {
-    id: 3,
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: 4,
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
+});
+
+const Contact = mongoose.model("Contact", contactSchema);
 
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Contact.find({}).then((persons) => {
+    response.json(persons)
+    mongoose.connection.close();
+  });
 });
 
 app.get("/info", (request, response) => {

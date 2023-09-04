@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+require("dotenv").config();
 
 // Check if the password is provided as a command-line argument
 if (process.argv.length < 3) {
@@ -7,7 +8,7 @@ if (process.argv.length < 3) {
 }
 
 // Get the password from the command-line argument
-const password = process.argv[2];
+const password = process.env.PASSWORD;
 const dbURL = `mongodb+srv://awwad:${password}@cluster0.4w4rnnc.mongodb.net/?retryWrites=true&w=majority`;
 
 mongoose
@@ -37,7 +38,7 @@ if (process.argv.length === 3) {
   // Fetch all contacts from the database and print them
   Contact.find({}).then((result) => {
     result.forEach((contact) => {
-      console.log(contact);
+      console.log(contact.name);
     });
     mongoose.connection.close();
   });
