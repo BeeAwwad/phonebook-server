@@ -2,8 +2,8 @@ const express = require("express");
 const app = express();
 const morgan = require("morgan");
 const cors = require("cors");
-const mongoose = require("mongoose");
 require("dotenv").config();
+const Contact = require("./models/contact");
 
 app.use(express.json());
 app.use(morgan("tiny"));
@@ -24,35 +24,10 @@ const format =
 app.use(morgan(format));
 
 // Mongoose definitions
-const password = process.env.PASSWORD;
-const dbURL = `mongodb+srv://awwad:${password}@cluster0.4w4rnnc.mongodb.net/?retryWrites=true&w=majority`;
-
-mongoose
-  .connect(dbURL)
-  .then(() => {
-    console.log("Connected to MongoDB");
-  })
-  .catch((error) => {
-    console.log("Error connecting to MongoDB:", error.message);
-  });
-
-const contactSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  number: {
-    type: Number,
-    required: true,
-  },
-});
-
-const Contact = mongoose.model("Contact", contactSchema);
 
 app.get("/api/persons", (request, response) => {
   Contact.find({}).then((persons) => {
-    response.json(persons)
-    mongoose.connection.close();
+    response.json(persons);
   });
 });
 
@@ -68,61 +43,27 @@ app.get("/info", (request, response) => {
   response.send(info);
 });
 
-const setId = () => {
-  const generateId = () => {
-    return Math.floor(Math.random() * 100) + 1;
-  };
+app.post("/api/persons", express.json(), (request, response) => {
+  const { name, number } = request.body;
 
-  let id = generateId();
-
-  const existingId = persons.some((person) => person.id === id);
-
-  while (existingId) {
-    id = generateId();
-
-    existingId = persons.some((person) => person.id === id);
-  }
-
-  return id;
-};
-
-app.post("/api/persons/:name/:number", (request, response) => {
-  const reqBody = request.body;
-  console.log("🚀 ~ file: index.js:76 ~ app.post ~ reqBody:", reqBody);
-
-  const newPerson = request.params.name;
-
-  const newNumber = request.params.number;
-
-  const checkPersonAndNumber = () =>
-    persons.some(
-      (person) => person.name === newPerson && person.number === newNumber
-    );
-
-  const checkPerson = () => persons.some((person) => person.name === newPerson);
-
-  const checkNumber = () =>
-    persons.some((person) => person.number === newNumber);
-
-  if (!newPerson || !newNumber) {
+  if (!name || !number) {//checks if name and number are missing
     return response.status(400).json({ error: "Name and Number missing" });
-  } else if (checkPersonAndNumber()) {
-    return response
-      .status(400)
-      .json({ error: "Name and Number already exists" });
-  } else if (checkPerson()) {
-    return response.status(400).json({ error: "Name already exists" });
-  } else if (checkNumber()) {
-    return response.status(400).json({ error: "Number already exists" });
   }
 
-  const newId = setId();
+  const newContact = new Contact({ name: name, number: number });
 
-  const person = { id: newId, name: newPerson, number: newNumber };
-
-  persons.push(person);
-
-  response.status(201).json(person);
+  newContact
+    .save()
+    .then((savedContact) => {
+      console.log(
+        `Added ${name} with number ${number} to the phonebook`
+      );
+      response.status(201).json(savedContact);//return saved contact
+    })
+    .catch((error) => {
+      console.log("Error saving contact:", error.message);
+      response.status(500).json({ error: "server error" });
+    });
 });
 
 app.delete("/api/persons/:id", (request, response) => {
@@ -161,16 +102,14 @@ app.put("/api/persons/:id", (request, response) => {
 
 app.get("/api/persons/:id", (request, response) => {
   const id = Number(request.params.id);
-  const person = persons.find((person) => person.id === id);
-
-  if (person) {
-    response.json(person);
-  } else {
-    response.status(404).end();
-  }
+  Contact.findById(id).then((contact) => {
+    response.json(contact);
+  });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
+console.log("🚀 ~ file: index.js:150 ~ PORT:", PORT);
+
 app.listen(PORT, () => {
   console.log(`Persons server running on port ${PORT}`);
 });
