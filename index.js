@@ -4,8 +4,7 @@ const morgan = require("morgan");
 const cors = require("cors");
 require("dotenv").config();
 const Contact = require("./models/contact");
-const e = require("express");
-app.use(express.static("dist"));
+
 app.use(express.json());
 app.use(morgan("tiny"));
 app.use(
@@ -13,39 +12,16 @@ app.use(
     origin: "*",
   })
 );
+app.use(express.static("dist"));
+
+morgan.token("object", function (req, res) {
+  return JSON.stringify(req.body);
+});
 
 const format =
   ":method :url :status :res[content-length] - :response-time ms :object";
 
 app.use(morgan(format));
-
-// logger handler
-
-const logger = (request, response, next) => {
-  console.log("Method:", request.method);
-  console.log("Path:  ", request.path);
-  console.log("Body:  ", request.body);
-  console.log("---");
-  next();
-};
-app.use(logger);
-
-// global error handler
-
-const errorHandler = (error, request, response, next) => {
-  console.error(error.message);
-
-  if (error.name === "CastError") {
-    return response.status(400).send({ error: "malformatted id" });
-  } else {
-    return next(error);
-  }
-};
-app.use(errorHandler);
-
-morgan.token("object", function (req, res) {
-  return JSON.stringify(req.body);
-});
 
 // Mongoose definitions
 
@@ -56,7 +32,7 @@ app.get("/api/persons", (request, response) => {
 });
 
 app.get("/info", (request, response) => {
-  const numberOfEntries = Contact.length;
+  const numberOfEntries = persons.length;
   const currentTime = new Date().toString();
 
   const info = `
@@ -70,8 +46,7 @@ app.get("/info", (request, response) => {
 app.post("/api/persons", express.json(), (request, response) => {
   const { name, number } = request.body;
 
-  if (!name || !number) {
-    //checks if name and number are missing
+  if (!name || !number) {//checks if name and number are missing
     return response.status(400).json({ error: "Name and Number missing" });
   }
 
@@ -80,8 +55,10 @@ app.post("/api/persons", express.json(), (request, response) => {
   newContact
     .save()
     .then((savedContact) => {
-      console.log(`Added ${name} with number ${number} to the phonebook`);
-      response.status(201).json(savedContact); //return saved contact
+      console.log(
+        `Added ${name} with number ${number} to the phonebook`
+      );
+      response.status(201).json(savedContact);//return saved contact
     })
     .catch((error) => {
       console.log("Error saving contact:", error.message);
@@ -89,14 +66,16 @@ app.post("/api/persons", express.json(), (request, response) => {
     });
 });
 
-app.delete("/api/persons/:id", (request, response, next) => {
-  const id = request.params.id;
+app.delete("/api/persons/:id", (request, response) => {
+  const id = Number(request.params.id);
 
-  Contact.findByIdAndRemove(id)
-    .then((result) => {
-      response.status(204).end();
-    })
-    .catch((error) => next(error));
+  const personIndex = persons.findIndex((person) => person.id === id);
+
+  if (personIndex !== -1) {
+    persons.splice(personIndex, 1);
+  } else {
+    response.status(404).end();
+  }
 });
 
 app.put("/api/persons/:id", (request, response) => {
@@ -121,20 +100,15 @@ app.put("/api/persons/:id", (request, response) => {
   }
 });
 
-app.get("/api/persons/:id", (request, response, next) => {
-  const id = request.params.id;
-  Contact.findById(id)
-    .then((contact) => {
-      if (contact) {
-        response.json(contact);
-      } else {
-        response.status(404).end();
-      }
-    })
-    .catch((error) => next(error));
+app.get("/api/persons/:id", (request, response) => {
+  const id = Number(request.params.id);
+  Contact.findById(id).then((contact) => {
+    response.json(contact);
+  });
 });
 
 const PORT = process.env.PORT;
+console.log("🚀 ~ file: index.js:150 ~ PORT:", PORT);
 
 app.listen(PORT, () => {
   console.log(`Persons server running on port ${PORT}`);
